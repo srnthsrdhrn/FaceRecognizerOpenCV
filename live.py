@@ -1,13 +1,14 @@
 # This script will detect faces via your webcam.
 # Tested with OpenCV3
-import threading
 
 import cv2
+import keyboard
 import numpy as np
-import os
+
 import sqlite_manager
 from feature_extraction import get_images_and_labels
 
+sqlite_manager.initialize()
 cap = cv2.VideoCapture(0)
 
 # Create the haar cascade
@@ -15,15 +16,16 @@ faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 counter = 0
 dir = "default"
 name = ""
-recognizer = cv2.face.createLBPHFaceRecognizer()
+recognizer = cv2.face.LBPHFaceRecognizer_create()
 flag = False
 
 images = []
 labels = []
 try:
-    recognizer.load('face_recognizer.yaml')
+    recognizer.read('face_recognizer.yaml')
     flag = True
-except:
+    print("Recognizer Loaded")
+except Exception as e:
     print("No Recognizer file Exist")
 
 
@@ -32,7 +34,7 @@ def wait_for_user_input():
     cv2.destroyAllWindows()
     images, labels = get_images_and_labels(name, cap)
     recognizer.update(images, np.array(labels))
-    recognizer.save('face_recognizer.yaml')
+    recognizer.write('face_recognizer.yaml')
     global flag
     flag = True
 
@@ -68,18 +70,19 @@ def predict():
             try:
                 predict_image = np.array(gray)
                 if flag:
-                    value = recognizer.predict(predict_image[x:x + w, y:y + h])
+                    value = recognizer.predict(predict_image[x:x + w, y:y + h])[0]
                     name = sqlite_manager.get_name(value)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.putText(frame, str(name), (x, y - 10), font, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
-            except:
-                print("OpenCV Exception")
+            except Exception as e:
+                print("OpenCV Exception " + str(e))
         # Display the resulting frame
         cv2.imshow('frame', frame)
-        # if cv2.waitKey(1) and 0xFF == ord('t'):
+        if cv2.waitKey(1) and 0xFF == ord('t'):
+            pass
         #     cv2.destroyAllWindows()
         #     wait_for_user_input()
-        if cv2.waitKey(1) and 0xFF == ord('q'):
+        if keyboard.is_pressed('q'):
             break  # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
@@ -92,30 +95,3 @@ elif a.upper() == 'P':
     predict()
 else:
     print("Improper Choice, Quitting")
-
-# fps = cap.get(cv2.CAP_PROP_FPS)
-# print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
-#
-#
-# # Number of frames to capture
-# num_frames = 120
-#
-# print("Capturing {0} frames".format(num_frames))
-#
-# # Start time
-# start = time.time()
-#
-# # Grab a few frames
-# for i in range(0, num_frames):
-#     ret, frame = cap.read()
-#
-# # End time
-# end = time.time()
-#
-# # Time elapsed
-# seconds = end - start
-# print("Time taken : {0} seconds".format(seconds))
-#
-# # Calculate frames per second
-# fps = num_frames / seconds
-# print("Estimated frames per second : {0}".format(fps))

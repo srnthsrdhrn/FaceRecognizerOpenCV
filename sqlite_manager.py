@@ -43,7 +43,7 @@ def name_present(name):
     cursor = db.cursor()
     cursor.execute('''Select id from Names where name = ?''', (name,))
     id = cursor.fetchone()
-    count = cursor.fetchall()
+    count = cursor.fetchall().__len__()
     if count != 0:
         return id[0]
     return False
